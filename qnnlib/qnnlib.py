@@ -1,17 +1,17 @@
 import pennylane as qml
 import numpy as np
 import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import combinations
 import csv
 
-class QNNLib:
+class qnnlib:
     """
-    QNNLib is a quantum neural network library that provides functionality for constructing 
+    qnnlib is a quantum neural network library that provides functionality for constructing 
     quantum circuits, training models, and performing experiments with various quantum devices. 
     The library supports custom optimization, scaling, and loss functions.
     
@@ -31,13 +31,14 @@ class QNNLib:
         "qiskit.remote"
     ]
     
-    def __init__(self, nqubits=4, device_name="default.qubit"):
+    def __init__(self, nqubits=4, device_name="default.qubit", backend=None):
         """
-        Initializes the QNNLib class with the specified number of qubits and quantum device.
+        Initializes the qnnlib class with the specified number of qubits and quantum device.
 
         Args:
             nqubits (int): Number of qubits to use in the circuit.
             device_name (str): Name of the quantum device to be used.
+            backend (None) : Physical quantum machine backend for using with qiskit.remote (refer to : https://docs.pennylane.ai/projects/qiskit/en/latest/)
         
         Raises:
             ValueError: If an unsupported device name is provided.
@@ -46,6 +47,7 @@ class QNNLib:
             raise ValueError(f"Unsupported device: {device_name}. Supported devices are: {self.SUPPORTED_DEVICES}")
         self.nqubits = nqubits
         self.device_name = device_name
+        self.backend=backend    
 
     def ZZFeatureMap(self, data):
         """
@@ -119,7 +121,12 @@ class QNNLib:
         if metrics is None:
             metrics = [tf.keras.metrics.BinaryAccuracy()]
 
-        dev = qml.device(self.device_name, wires=self.nqubits)
+        dev = None
+        if self.device_name == "qiskit.remote":
+            dev = qml.device(self.device_name, wires=self.nqubits, backend=self.backend)
+        else:
+            dev = qml.device(self.device_name, wires=self.nqubits)
+
         state_0 = np.array([[1], [0]])
         M = state_0 @ np.conj(state_0).T
 
@@ -287,9 +294,10 @@ class QNNLib:
 
 
 
+"""
 # Example usage
-qnnlib = QNNLib(nqubits=8, device_name="lightning.qubit")
-qnnlib.run_experiment(
+qnn = qnnlib(nqubits=8, device_name="lightning.qubit")
+qnn.run_experiment(
     data_path='diabetes.csv', 
     target='Outcome', 
     test_size=0.3,
@@ -301,3 +309,5 @@ qnnlib.run_experiment(
     scaler=MinMaxScaler(),
     seed=1234
 )
+
+"""
