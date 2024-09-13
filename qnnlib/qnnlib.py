@@ -48,6 +48,7 @@ class qnnlib:
         self.nqubits = nqubits
         self.device_name = device_name
         self.backend=backend    
+        self.loaded_model=None
 
     def ZZFeatureMap(self, data):
         """
@@ -159,6 +160,7 @@ class qnnlib:
             tf.keras.callbacks.History: Training history containing loss and accuracy information.
         """
         history = model.fit(xs_tr, y_tr, epochs=epochs, shuffle=True, validation_data=(xs_val, y_val), batch_size=batch_size)
+
         return history
 
     def plot_losses(self, history):
@@ -254,7 +256,7 @@ class qnnlib:
 
         return xs_tr, y_tr, xs_val, y_val, xs_test, y_test
 
-    def run_experiment(self, data_path, target, model_output_path="model.h5", csv_output_path="progress.csv", test_size=0.2, val_size=0.5, scaler=MinMaxScaler(), reps=3, epochs=50, batch_size=20, optimizer=None, loss_fn=None, metrics=None, seed=4321):
+    def run_experiment(self, data_path, target, model_output_path="model.h5", csv_output_path="progress.csv", test_size=0.2, val_size=0.5, scaler=MinMaxScaler(), reps=3, epochs=50, batch_size=20, optimizer=None, loss_fn=None, metrics=None, seed=4321, loss_plot_file="loss.png", accuracy_plot_file="accuracy.png"):
         """
         Runs a full quantum neural network experiment, including data preparation, model training, 
         and saving results to files.
@@ -274,7 +276,13 @@ class qnnlib:
             loss_fn (tf.keras.losses.Loss): Optional loss function.
             metrics (list): Optional list of metrics for model evaluation.
             seed (int): Seed for reproducibility.
+            loss_plot_file (str): Path to save the loss plot.
+            accuracy_plot_file (str): Path to save the accuracy plot.
         """
+
+        if not model_output_path.endswith(".h5"):
+            raise ValueError("Model output path must end with extension '.h5'")
+
         xs_tr, y_tr, xs_val, y_val, xs_test, y_test = self.prepare_data_pca(
             filepath=data_path, target=target, test_size=test_size, val_size=val_size, scaler=scaler,seed=seed
         )
@@ -289,22 +297,70 @@ class qnnlib:
         self.dump_training_progress(history, csv_output_path)
 
         # Plot losses and accuracy
-        self.plot_losses(history)
-        self.plot_accuracy(history)
+        self.plot_losses(history, loss_plot_file)
+        self.plot_accuracy(history, accuracy_plot_file)
 
+        loss, accuracy = model.evaluate(xs_val, y_val, verbose=0)
+        print(f"Validation Accuracy: {accuracy * 100:.2f}%")
+        
+        return accuracy
 
+    def plot_losses(self, history, loss_plot_file):
+        """
+        Saves the training and validation losses over epochs as an image file.
 
-if __name__ == '__main__':
-    qnn = qnnlib(nqubits=8, device_name="lightning.qubit")
-    qnn.run_experiment(
-        data_path='diabetes.csv', 
-        target='Outcome', 
-        test_size=0.3,
-        model_output_path='qnn_model.keras', 
-        csv_output_path='training_progress.csv',
-        batch_size=10,
-        epochs=2,
-        reps=2048,
-        scaler=MinMaxScaler(),
-        seed=1234
-    )
+        Args:
+            history (tf.keras.callbacks.History): The history object from model training.
+            loss_plot_file (str): File path to save the loss plot.
+        """
+        tr_loss = history.history["loss"]
+        val_loss = history.history["val_loss"]
+        epochs = np.array(range(len(tr_loss))) + 1
+        plt.plot(epochs, tr_loss, label="Training loss")
+        plt.plot(epochs, val_loss, label="Validation loss")
+        plt.xlabel("Epoch")
+        plt.legend()
+        plt.savefig(loss_plot_file)
+        plt.close()
+
+    def plot_accuracy(self, history, accuracy_plot_file):
+        """
+        Saves the training and validation accuracy over epochs as an image file.
+
+        Args:
+            history (tf.keras.callbacks.History): The history object from model training.
+            accuracy_plot_file (str): File path to save the accuracy plot.
+        """
+        tr_acc = history.history["binary_accuracy"]
+        val_acc = history.history["val_binary_accuracy"]
+        epochs = np.array(range(len(tr_acc))) + 1
+        plt.plot(epochs, tr_acc, label="Training accuracy")
+        plt.plot(epochs, val_acc, label="Validation accuracy")
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        plt.savefig(accuracy_plot_file)
+        plt.close()
+    
+    def load_pretrained_qnn(self, nqubits, reps, model_file):  
+        dev = None
+        if self.device_name == "qiskit.remote":
+            dev = qml.device(self.device_name, wires=self.nqubits, backend=self.backend)
+        else:
+            dev = qml.device(self.device_name, wires=self.nqubits)
+
+        state_0 = np.array([[1], [0]])
+        M = state_0 @ np.conj(state_0).T
+
+        # Dynamically determine the number of parameters needed for theta
+        total_params = self.nqubits * reps
+        qnn = qml.QNode(lambda inputs, theta: self.qnn_circuit(inputs, theta, M=M), dev, interface="tf")
+
+        self.loaded_model = tf.keras.models.load_model(model_file, custom_objects={'KerasLayer': lambda *args, **kwargs: qml.qnn.KerasLayer(qnn, *args, **kwargs)})
+        print("Model loaded")
+    
+    def predict(self, input):
+        if self.loaded_model == None:
+            return []
+        else:
+            return self.loaded_model.predict(input)
