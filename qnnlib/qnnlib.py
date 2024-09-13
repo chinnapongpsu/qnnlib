@@ -118,7 +118,7 @@ class qnnlib:
         if optimizer is None:
             optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.01)
         if loss_fn is None:
-            loss_fn = tf.keras.losses.CategoricalCrossentropy()
+            loss_fn = tf.keras.losses.BinaryCrossEntropy()
         if metrics is None:
             metrics = [tf.keras.metrics.BinaryAccuracy()]
 
