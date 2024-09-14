@@ -12,7 +12,7 @@ DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
 setup(
   name = 'qnnlib',      
   packages = ['qnnlib'], 
-  version = '0.1.2', 
+  version = '0.1.3', 
   license='MIT', 
   description = 'This library is designed to help data scientists easily conduct experiments with Quantum Neural Networks (QNNs) without the need to manually construct quantum circuits. ',
   long_description=DESCRIPTION,
@@ -20,7 +20,7 @@ setup(
   author = 'chinnapongpsu',                 
   author_email = 'chinnapong.a@psu.ac.th',     
   url = 'https://github.com/chinnapongpsu/qnnlib',  
-  download_url = 'https://github.com/chinnapongpsu/qnnlib/archive/refs/tags/0.1.2.zip',  
+  download_url = 'https://github.com/chinnapongpsu/qnnlib/archive/refs/tags/0.1.3.zip',  
   keywords = [
     'quantum neural networks',
     "quantum machine learning"
