@@ -1,6 +1,7 @@
 import pennylane as qml
 import numpy as np
 import tensorflow as tf
+
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -45,6 +46,11 @@ class qnnlib:
         """
         if device_name not in self.SUPPORTED_DEVICES:
             raise ValueError(f"Unsupported device: {device_name}. Supported devices are: {self.SUPPORTED_DEVICES}")
+
+        if device_name == "qiskit.aer":
+            tf.keras.backend.set_floatx('float64')
+
+
         self.nqubits = nqubits
         self.device_name = device_name
         self.backend=backend    
@@ -76,14 +82,15 @@ class qnnlib:
             reps (int): The number of repetitions of the ansatz.
         """
         for r in range(reps):
-            for i in range(self.nqubits):
+            for i in range(self.nqubits):                
                 qml.RY(theta[r * self.nqubits + i], wires=i)
             for i in range(self.nqubits - 1):
                 qml.CNOT(wires=[i, i + 1])
-
+        
+        
         for i in range(self.nqubits):
-            qml.RY(theta[reps * self.nqubits + i], wires=i)
-
+            qml.RY(theta[(reps-1) * self.nqubits + i], wires=i)
+            
     def qnn_circuit(self, inputs, theta, M=None, reps=3):
         """
         Defines the full quantum neural network circuit using ZZFeatureMap and TwoLocal ansatz.
@@ -133,7 +140,9 @@ class qnnlib:
 
         # Dynamically determine the number of parameters needed for theta
         total_params = self.nqubits * reps
-        qnn = qml.QNode(lambda inputs, theta: self.qnn_circuit(inputs, theta, M=M), dev, interface="tf")
+
+        print("Total Params", total_params)
+        qnn = qml.QNode(lambda inputs, theta: self.qnn_circuit(inputs, theta, M=M, reps=reps), dev, interface="tf")
         weights = {"theta": total_params}
 
         qlayer = qml.qnn.KerasLayer(qnn, weights, output_dim=1)
@@ -354,7 +363,8 @@ class qnnlib:
 
         # Dynamically determine the number of parameters needed for theta
         total_params = self.nqubits * reps
-        qnn = qml.QNode(lambda inputs, theta: self.qnn_circuit(inputs, theta, M=M), dev, interface="tf")
+        print("Total Params", total_params)
+        qnn = qml.QNode(lambda inputs, theta: self.qnn_circuit(inputs, theta, M=M,reps=reps), dev, interface="tf")
 
         self.loaded_model = tf.keras.models.load_model(model_file, custom_objects={'KerasLayer': lambda *args, **kwargs: qml.qnn.KerasLayer(qnn, *args, **kwargs)})
         print("Model loaded")
