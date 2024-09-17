@@ -1,2 +1,1 @@
-# -*- coding: utf-8 -*-
-from qnnlib import qnnlib
+from .qnnlib import qnnlib
