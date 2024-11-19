@@ -1,9 +1,9 @@
 scikit-learn
-tensorflow==2.15.0
-keras==2.15.0
-pennylane==0.37.0
+tensorflow
+tf_keras
+pennylane==0.39.0
 matplotlib
 pandas
-scikit-learn==1.5.1
+scikit-learn
 qiskit-ibm-provider==0.11.0
 pennylane-qiskit

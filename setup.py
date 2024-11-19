@@ -12,7 +12,7 @@ DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
 setup(
   name = 'qnnlib',      
   packages = ['qnnlib'], 
-  version = '0.1.5', 
+  version = '0.1.6', 
   license='MIT', 
   description = 'This library is designed to help data scientists easily conduct experiments with Quantum Neural Networks (QNNs) without the need to manually construct quantum circuits. ',
   long_description=DESCRIPTION,
@@ -30,8 +30,8 @@ setup(
 
   install_requires=[            # I get to this in a second
           'scikit-learn==1.5.1',
-          'tensorflow==2.15.0',
-          'keras==2.15.0',
+          'tensorflow',
+          'tf_keras',
           'pennylane==0.37.0',
           'matplotlib',
           'pandas',

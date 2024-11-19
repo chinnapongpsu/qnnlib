@@ -1,5 +1,5 @@
 from qnnlib import qnnlib
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 qnn = qnnlib(nqubits=8, device_name="lightning.qubit")
@@ -12,7 +12,7 @@ qnn.run_experiment(
     batch_size=10,
     epochs=2,
     reps=2048,
-    scaler=MaxAbsScaler(),
+    scaler=MinMaxScaler(),
     optimizer=tf.keras.optimizers.Adamax(learning_rate=0.001),
     seed=1234
 )
